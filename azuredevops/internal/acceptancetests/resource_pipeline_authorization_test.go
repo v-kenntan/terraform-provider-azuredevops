@@ -253,6 +253,23 @@ func TestAccPipelineAuthorization_pipeline_cross_project_repository(t *testing.T
 					resource.TestCheckResourceAttrSet(node, "resource_id"),
 				),
 			},
+			{
+				ResourceName:      node,
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateIdFunc: func(s *terraform.State) (string, error) {
+					rs, ok := s.RootModule().Resources[node]
+					if !ok {
+						return "", fmt.Errorf("resource not found in state: %s", node)
+					}
+
+					if rs.Primary == nil || rs.Primary.ID == "" {
+						return "", fmt.Errorf("no primary instance or ID found for resource: %s", node)
+					}
+
+					return rs.Primary.ID, nil
+				},
+			},
 		},
 	})
 }

@@ -159,7 +159,7 @@ func resourcePipelineAuthorizationCreateUpdate(d *schema.ResourceData, m interfa
 	resType := d.Get("type").(string)
 	resId := d.Get("resource_id").(string)
 
-	if strings.EqualFold(resType, "repository") && !strings.Contains(resId, ".") {
+	if strings.EqualFold(resType, "repository") {
 		resId = projectId + "." + resId
 	}
 
@@ -211,7 +211,7 @@ func resourcePipelineAuthorizationCreateUpdate(d *schema.ResourceData, m interfa
 		id := pipelineAuthorizationId{
 			projectId:  projectId,
 			typ:        resType,
-			resourceId: resId,
+			resourceId: d.Get("resource_id").(string),
 			pipelineId: nil,
 		}
 		if v := d.Get("pipeline_project_id").(string); v != "" {
@@ -237,7 +237,7 @@ func resourcePipelineAuthorizationRead(d *schema.ResourceData, m interface{}) er
 	resType := d.Get("type").(string)
 	resId := d.Get("resource_id").(string)
 
-	if strings.EqualFold(resType, "repository") && !strings.Contains(resId, ".") {
+	if strings.EqualFold(resType, "repository") {
 		resId = projectId + "." + resId
 	}
 
@@ -302,7 +302,7 @@ func resourcePipelineAuthorizationDelete(d *schema.ResourceData, m interface{}) 
 	resType := d.Get("type").(string)
 	resId := d.Get("resource_id").(string)
 
-	if strings.EqualFold(resType, "repository") && !strings.Contains(resId, ".") {
+	if strings.EqualFold(resType, "repository") {
 		resId = projectId + "." + resId
 	}
 
@@ -347,7 +347,7 @@ func checkPipelineAuthorization(clients *client.AggregatedClient, d *schema.Reso
 			pipelineProjectId = d.Get("pipeline_project_id").(string)
 		}
 
-		if strings.EqualFold(resourceType, "repository") && !strings.Contains(resourceId, ".") {
+		if strings.EqualFold(resourceType, "repository") {
 			resourceId = projectId + "." + resourceId
 		}
 

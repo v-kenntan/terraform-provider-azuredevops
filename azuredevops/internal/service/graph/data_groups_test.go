@@ -155,42 +155,6 @@ func TestGroupsDataSource_HandlesContinuationToken(t *testing.T) {
 	require.Equal(t, 2, groupsSet.Len())
 }
 
-func TestGroupsDataSource_FilterGroupsByProjectDomain(t *testing.T) {
-	t.Parallel()
-
-	projectID := uuid.New().String()
-
-	collectionReaders := graph.GraphGroup{
-		DisplayName: ptr("Readers"),
-		Domain:      ptr("vstfs:///Framework/IdentityDomain"),
-		Descriptor:  ptr("vssgp.collection.readers"),
-	}
-
-	projectReaders := graph.GraphGroup{
-		DisplayName: ptr("Readers"),
-		Domain:      ptr("vstfs:///Classification/TeamProject/" + projectID),
-		Descriptor:  ptr("vssgp.project.readers"),
-	}
-
-	otherProjectGroup := graph.GraphGroup{
-		DisplayName: ptr("Contributors"),
-		Domain:      ptr("vstfs:///Classification/TeamProject/" + projectID),
-		Descriptor:  ptr("vssgp.project.contributors"),
-	}
-
-	input := []graph.GraphGroup{
-		collectionReaders,
-		projectReaders,
-		otherProjectGroup,
-	}
-
-	out := filterProjectScopedGroups(input, projectID)
-
-	require.Len(t, out, 2)
-	require.Equal(t, "vssgp.project.readers", *out[0].Descriptor)
-	require.Equal(t, "vssgp.project.contributors", *out[1].Descriptor)
-}
-
 func createGroupsDataSource(t *testing.T, projectID string) *schema.ResourceData {
 	resourceData := schema.TestResourceDataRaw(t, DataGroups().Schema, nil)
 	if projectID != "" {

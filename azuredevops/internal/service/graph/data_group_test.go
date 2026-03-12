@@ -7,7 +7,6 @@ package graph
 import (
 	"context"
 	"errors"
-	"strings"
 	"testing"
 
 	"github.com/google/uuid"
@@ -217,42 +216,6 @@ func TestGroupDataSource_HandlesCollectionGroups_And_ReturnsCorrectGroup(t *test
 	require.Empty(t, resourceData.Get("project_id"))
 }
 
-func TestGroupDataSource_PrefersProjectScopedGroup(t *testing.T) {
-	projectID := uuid.New().String()
-
-	groups := []graph.GraphGroup{
-		{
-			DisplayName: ptr("Readers"),
-			Domain:      ptr("vstfs:///Framework/IdentityDomain"),
-			Descriptor:  ptr("vssgp.COLLECTION"),
-		},
-		{
-			DisplayName: ptr("Readers"),
-			Domain:      ptr("vstfs:///Classification/TeamProject/" + projectID),
-			Descriptor:  ptr("vssgp.PROJECT"),
-		},
-	}
-
-	out := filterProjectScopedGroups(groups, projectID)
-
-	if len(out) != 1 {
-		t.Fatalf("expected 1 group, got %d", len(out))
-	}
-	if out[0].Descriptor == nil || *out[0].Descriptor != "vssgp.PROJECT" {
-		t.Fatalf("expected project group, got %+v", out[0])
-	}
-
-	result := selectGroup(&out, "Readers")
-
-	if result == nil {
-		t.Fatal("expected a group, got nil")
-	}
-
-	if *result.Descriptor != "vssgp.PROJECT" {
-		t.Fatalf("expected project-scoped group, got %s", *result.Descriptor)
-	}
-}
-
 func createPaginatedResponse(continuationToken string, groups ...groupMeta) *graph.PagedGraphGroups {
 	continuationTokenList := []string{continuationToken}
 	return &graph.PagedGraphGroups{
@@ -283,18 +246,4 @@ func createResourceData(t *testing.T, projectID string, groupName string) *schem
 		resourceData.Set("project_id", projectID)
 	}
 	return resourceData
-}
-
-func ptr(s string) *string {
-	return &s
-}
-
-func filterProjectScopedGroups(groups []graph.GraphGroup, projectID string) []graph.GraphGroup {
-	var out []graph.GraphGroup
-	for _, g := range groups {
-		if g.Domain != nil && strings.Contains(*g.Domain, projectID) {
-			out = append(out, g)
-		}
-	}
-	return out
 }

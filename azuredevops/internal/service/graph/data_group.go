@@ -134,7 +134,6 @@ func getGroupsForDescriptor(clients *client.AggregatedClient, projectDescriptor 
 		}
 
 		if newGroups != nil && len(*newGroups) > 0 {
-
 			var filteredGroups []graph.GraphGroup
 
 			if projectDescriptor == "" {

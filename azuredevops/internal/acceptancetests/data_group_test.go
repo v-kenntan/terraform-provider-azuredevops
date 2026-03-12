@@ -58,6 +58,32 @@ func TestAccGroupDataSource_Read_ProjectCollectionAdministrators(t *testing.T) {
 	})
 }
 
+func TestAccGroupDataSource_ReadersResolvesWithProjectID(t *testing.T) {
+	projectName := testutils.GenerateResourceName()
+	tfBuildDefNode := "data.azuredevops_group.readers"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testutils.PreCheck(t, nil) },
+		Providers: testutils.GetProviders(),
+		Steps: []resource.TestStep{
+			{
+				Config: hclGroupDataReadersConfig(projectName),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(tfBuildDefNode, "name", "Readers"),
+					resource.TestCheckResourceAttrPair(
+						tfBuildDefNode, "project_id",
+						"azuredevops_project.test", "id",
+					),
+					resource.TestCheckResourceAttrPair(
+						tfBuildDefNode, "id",
+						tfBuildDefNode, "descriptor",
+					),
+				),
+			},
+		},
+	})
+}
+
 func hclGroupDataBasic(projectName, groupName string) string {
 	return fmt.Sprintf(`
 resource "azuredevops_project" "test" {
@@ -79,4 +105,17 @@ func hclGroupDataAllGroups(groupName string) string {
 data "azuredevops_group" "test" {
   name = "%s"
 }`, groupName)
+}
+
+func hclGroupDataReadersConfig(projectName string) string {
+	return fmt.Sprintf(`
+resource "azuredevops_project" "test" {
+  name = %q
+}
+
+data "azuredevops_group" "readers" {
+  project_id = azuredevops_project.test.id
+  name       = "Readers"
+}
+`, projectName)
 }

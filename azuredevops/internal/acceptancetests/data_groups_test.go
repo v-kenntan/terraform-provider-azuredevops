@@ -2,9 +2,11 @@ package acceptancetests
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 	"github.com/microsoft/terraform-provider-azuredevops/azuredevops/internal/acceptancetests/testutils"
 )
 
@@ -46,6 +48,23 @@ func TestAccGroupsDataSource_Read_NoProject(t *testing.T) {
 	})
 }
 
+func TestAccGroupsDataSource_ProjectID_FiltersOutCollectionGroups(t *testing.T) {
+	projectName := testutils.GenerateResourceName()
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testutils.PreCheck(t, nil) },
+		Providers: testutils.GetProviders(),
+		Steps: []resource.TestStep{
+			{
+				Config: hclGroupsDataProjectScopedConfig(projectName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAllGroupDomainsContainProjectID("data.azuredevops_groups.scoped", "groups", "domain", "azuredevops_project.test"),
+				),
+			},
+		},
+	})
+}
+
 func hclGroupsDataSourceBasic(projectName string) string {
 	return fmt.Sprintf(`
 resource "azuredevops_project" "project" {
@@ -64,4 +83,39 @@ data "azuredevops_groups" "groups" {
 
 func hclGroupsDataSourceAllGroups() string {
 	return `data "azuredevops_groups" "groups" {}`
+}
+
+func hclGroupsDataProjectScopedConfig(projectName string) string {
+	return fmt.Sprintf(`
+resource "azuredevops_project" "test" {
+  name = %q
+}
+
+data "azuredevops_groups" "scoped" {
+  project_id = azuredevops_project.test.id
+}
+`, projectName)
+}
+
+func testAccCheckAllGroupDomainsContainProjectID(groupsAddr, listAttr, domainField, projectResourceAddr string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		grs, ok := s.RootModule().Resources[groupsAddr]
+		if !ok {
+			return fmt.Errorf("not found: %s", groupsAddr)
+		}
+		prs, ok := s.RootModule().Resources[projectResourceAddr]
+		if !ok {
+			return fmt.Errorf("not found: %s", projectResourceAddr)
+		}
+		projectID := prs.Primary.ID
+
+		for k, v := range grs.Primary.Attributes {
+			if strings.HasPrefix(k, listAttr+".") && strings.HasSuffix(k, "."+domainField) {
+				if !strings.Contains(v, projectID) {
+					return fmt.Errorf("expected %s to contain project id %s, got %q", k, projectID, v)
+				}
+			}
+		}
+		return nil
+	}
 }

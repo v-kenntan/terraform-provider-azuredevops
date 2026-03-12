@@ -69,7 +69,7 @@ func dataSourceGroupRead(d *schema.ResourceData, m interface{}) error {
 		return fmt.Errorf("Finding descriptor for project with ID: %s. Error: %v", projectID, err)
 	}
 
-	projectGroups, err := getGroupsForDescriptor(clients, projectDescriptor)
+	projectGroups, err := getGroupsForDescriptor(clients, projectDescriptor, projectID)
 	if err != nil {
 		errMsg := "Error finding groups"
 		if projectID != "" {
@@ -122,7 +122,7 @@ func getProjectDescriptor(clients *client.AggregatedClient, projectID string) (s
 	return *descriptor.Value, nil
 }
 
-func getGroupsForDescriptor(clients *client.AggregatedClient, projectDescriptor string) (*[]graph.GraphGroup, error) {
+func getGroupsForDescriptor(clients *client.AggregatedClient, projectDescriptor string, projectID string) (*[]graph.GraphGroup, error) {
 	var groups []graph.GraphGroup
 	var currentToken string
 
@@ -134,9 +134,11 @@ func getGroupsForDescriptor(clients *client.AggregatedClient, projectDescriptor 
 		}
 
 		if newGroups != nil && len(*newGroups) > 0 {
+
+			var filteredGroups []graph.GraphGroup
+
 			if projectDescriptor == "" {
 				// filter on collection groups
-				var filteredGroups []graph.GraphGroup
 				for _, grp := range *newGroups {
 					if grp.Domain == nil {
 						continue
@@ -150,7 +152,12 @@ func getGroupsForDescriptor(clients *client.AggregatedClient, projectDescriptor 
 				}
 				groups = append(groups, filteredGroups...)
 			} else {
-				groups = append(groups, *newGroups...)
+				for _, grp := range *newGroups {
+					if grp.Domain != nil && strings.Contains(*grp.Domain, projectID) {
+						filteredGroups = append(filteredGroups, grp)
+					}
+				}
+				groups = append(groups, filteredGroups...)
 			}
 		}
 		hasMore = currentToken != ""

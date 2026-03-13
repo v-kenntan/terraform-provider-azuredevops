@@ -106,7 +106,7 @@ func dataSourceGroupsRead(d *schema.ResourceData, m interface{}) error {
 		return fmt.Errorf("Finding descriptor for project with ID %s. Error: %v", projectID, err)
 	}
 
-	groups, err := getGroupsForDescriptor(clients, projectDescriptor, projectID)
+	groups, err := getGroupsForDescriptor(clients, projectDescriptor)
 	if err != nil {
 		errMsg := " Finding groups"
 		if projectID != "" {

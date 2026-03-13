@@ -69,7 +69,7 @@ func dataSourceGroupRead(d *schema.ResourceData, m interface{}) error {
 		return fmt.Errorf("Finding descriptor for project with ID: %s. Error: %v", projectID, err)
 	}
 
-	projectGroups, err := getGroupsForDescriptor(clients, projectDescriptor, projectID)
+	projectGroups, err := getGroupsForDescriptor(clients, projectDescriptor)
 	if err != nil {
 		errMsg := "Error finding groups"
 		if projectID != "" {
@@ -122,7 +122,7 @@ func getProjectDescriptor(clients *client.AggregatedClient, projectID string) (s
 	return *descriptor.Value, nil
 }
 
-func getGroupsForDescriptor(clients *client.AggregatedClient, projectDescriptor string, projectID string) (*[]graph.GraphGroup, error) {
+func getGroupsForDescriptor(clients *client.AggregatedClient, projectDescriptor string) (*[]graph.GraphGroup, error) {
 	var groups []graph.GraphGroup
 	var currentToken string
 
@@ -152,7 +152,8 @@ func getGroupsForDescriptor(clients *client.AggregatedClient, projectDescriptor 
 				groups = append(groups, filteredGroups...)
 			} else {
 				for _, grp := range *newGroups {
-					if grp.Domain != nil && strings.Contains(*grp.Domain, projectID) {
+					domain := strings.ToLower(*grp.Domain)
+					if grp.Domain != nil && strings.HasPrefix(domain, "vstfs:///classification/teamproject/") {
 						filteredGroups = append(filteredGroups, grp)
 					}
 				}

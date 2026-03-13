@@ -122,8 +122,8 @@ data "azuredevops_group" "project_admins" {
 }
 
 resource "azuredevops_group_membership" "make_collection_visible" {
-  mode   = "add"
-  group  = data.azuredevops_group.project_admins.descriptor
+  mode  = "add"
+  group = data.azuredevops_group.project_admins.descriptor
   members = [
     azuredevops_group.collection_readers.descriptor
   ]
@@ -136,8 +136,8 @@ data "azuredevops_group" "project_readers" {
 }
 
 data "azuredevops_groups" "project_groups" {
-  project_id  = azuredevops_project.test.id
-  depends_on  = [azuredevops_group_membership.make_collection_visible]
+  project_id = azuredevops_project.test.id
+  depends_on = [azuredevops_group_membership.make_collection_visible]
 }
 `, projectName)
 }

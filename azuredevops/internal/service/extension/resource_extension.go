@@ -53,7 +53,7 @@ func ResourceExtension() *schema.Resource {
 				ForceNew:         true,
 				DiffSuppressFunc: suppress.CaseDifference,
 				ValidateFunc:     validation.StringIsNotWhiteSpace,
-				Description:      "The Azure DevOps Marketplace publisher identifier, for example `ms`. This value is not a GUID. Azure DevOps extension installation only supports Marketplace identifiers.",
+				Description:      "The Azure DevOps Marketplace publisher identifier, for example `ms`.",
 			},
 			"disabled": {
 				Type:     schema.TypeBool,

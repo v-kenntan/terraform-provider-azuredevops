@@ -2,7 +2,6 @@ package acceptancetests
 
 import (
 	"fmt"
-	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -58,7 +57,12 @@ func TestAccGroupsDataSource_ProjectID_FiltersOutCollectionGroups(t *testing.T) 
 			{
 				Config: hclGroupsDataProjectScopedConfig(projectName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckAllGroupDomainsContainProjectID("data.azuredevops_groups.scoped", "groups", "domain", "azuredevops_project.test"),
+					resource.TestCheckResourceAttrSet("azuredevops_group.collection_readers", "descriptor"),
+					resource.TestCheckResourceAttrSet("data.azuredevops_group.project_readers", "descriptor"),
+					testAccCheckCollectionGroupNotInProjectGroups(
+						"data.azuredevops_groups.project_groups",
+						"azuredevops_group.collection_readers",
+					),
 				),
 			},
 		},
@@ -87,35 +91,67 @@ func hclGroupsDataSourceAllGroups() string {
 
 func hclGroupsDataProjectScopedConfig(projectName string) string {
 	return fmt.Sprintf(`
-resource "azuredevops_project" "test" {
-  name = %q
+resource "azuredevops_group" "collection_readers" {
+  display_name = "Readers"
 }
 
-data "azuredevops_groups" "scoped" {
+resource "azuredevops_project" "test" {
+  name       = "%s"
+  depends_on = [azuredevops_group.collection_readers]
+}
+
+data "azuredevops_group" "project_admins" {
+  name       = "Project Administrators"
   project_id = azuredevops_project.test.id
+}
+
+resource "azuredevops_group_membership" "make_collection_visible" {
+  mode  = "add"
+  group = data.azuredevops_group.project_admins.descriptor
+  members = [
+    azuredevops_group.collection_readers.descriptor
+  ]
+}
+
+data "azuredevops_group" "project_readers" {
+  name       = "Readers"
+  project_id = azuredevops_project.test.id
+  depends_on = [azuredevops_group_membership.make_collection_visible]
+}
+
+data "azuredevops_groups" "project_groups" {
+  project_id = azuredevops_project.test.id
+  depends_on = [azuredevops_group_membership.make_collection_visible]
 }
 `, projectName)
 }
 
-func testAccCheckAllGroupDomainsContainProjectID(groupsAddr, listAttr, domainField, projectResourceAddr string) resource.TestCheckFunc {
+func testAccCheckCollectionGroupNotInProjectGroups(projectGroupsNode string, collectionGroupNode string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		grs, ok := s.RootModule().Resources[groupsAddr]
+		pg, ok := s.RootModule().Resources[projectGroupsNode]
 		if !ok {
-			return fmt.Errorf("not found: %s", groupsAddr)
+			return fmt.Errorf("not found: %s", projectGroupsNode)
 		}
-		prs, ok := s.RootModule().Resources[projectResourceAddr]
-		if !ok {
-			return fmt.Errorf("not found: %s", projectResourceAddr)
-		}
-		projectID := prs.Primary.ID
 
-		for k, v := range grs.Primary.Attributes {
-			if strings.HasPrefix(k, listAttr+".") && strings.HasSuffix(k, "."+domainField) {
-				if !strings.Contains(v, projectID) {
-					return fmt.Errorf("expected %s to contain project id %s, got %q", k, projectID, v)
-				}
+		cg, ok := s.RootModule().Resources[collectionGroupNode]
+		if !ok {
+			return fmt.Errorf("not found: %s", collectionGroupNode)
+		}
+
+		collectionDesc := cg.Primary.Attributes["descriptor"]
+		if collectionDesc == "" {
+			return fmt.Errorf("collection descriptor missing")
+		}
+
+		for _, v := range pg.Primary.Attributes {
+			if v == collectionDesc {
+				return fmt.Errorf(
+					"collection-level group %q present in project-scoped group list",
+					collectionDesc,
+				)
 			}
 		}
+
 		return nil
 	}
 }

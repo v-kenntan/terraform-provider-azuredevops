@@ -71,9 +71,8 @@ func TestAccGroupDataSource_ReadersResolvesWithProjectID(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("azuredevops_group.collection_readers", "descriptor"),
 					resource.TestCheckResourceAttrSet("data.azuredevops_group.project_readers", "descriptor"),
-					resource.TestCheckResourceAttrSet("data.azuredevops_groups.project_groups", "groups.#"),
-					testAccCheckCollectionGroupNotInProjectGroups(
-						"data.azuredevops_groups.project_groups",
+					testAccCheckCollectionGroupNotInProjectGroup(
+						"data.azuredevops_group.project_readers",
 						"azuredevops_group.collection_readers",
 					),
 				),
@@ -134,19 +133,14 @@ data "azuredevops_group" "project_readers" {
   project_id = azuredevops_project.test.id
   depends_on = [azuredevops_group_membership.make_collection_visible]
 }
-
-data "azuredevops_groups" "project_groups" {
-  project_id = azuredevops_project.test.id
-  depends_on = [azuredevops_group_membership.make_collection_visible]
-}
 `, projectName)
 }
 
-func testAccCheckCollectionGroupNotInProjectGroups(projectGroupsNode string, collectionGroupNode string) resource.TestCheckFunc {
+func testAccCheckCollectionGroupNotInProjectGroup(projectGroupNode string, collectionGroupNode string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		pg, ok := s.RootModule().Resources[projectGroupsNode]
+		pg, ok := s.RootModule().Resources[projectGroupNode]
 		if !ok {
-			return fmt.Errorf("not found: %s", projectGroupsNode)
+			return fmt.Errorf("not found: %s", projectGroupNode)
 		}
 
 		cg, ok := s.RootModule().Resources[collectionGroupNode]
@@ -159,13 +153,16 @@ func testAccCheckCollectionGroupNotInProjectGroups(projectGroupsNode string, col
 			return fmt.Errorf("collection descriptor missing")
 		}
 
-		for _, v := range pg.Primary.Attributes {
-			if v == collectionDesc {
-				return fmt.Errorf(
-					"collection-level group %q present in project-scoped group list",
-					collectionDesc,
-				)
-			}
+		projectDesc := pg.Primary.Attributes["descriptor"]
+		if projectDesc == "" {
+			return fmt.Errorf("project descriptor missing")
+		}
+
+		if collectionDesc == projectDesc {
+			return fmt.Errorf(
+				"collection-level group %q present in project-scoped group list",
+				collectionDesc,
+			)
 		}
 
 		return nil

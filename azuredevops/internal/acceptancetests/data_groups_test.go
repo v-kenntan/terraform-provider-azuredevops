@@ -58,7 +58,7 @@ func TestAccGroupsDataSource_ProjectID_FiltersOutCollectionGroups(t *testing.T) 
 				Config: hclGroupsDataProjectScopedConfig(projectName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("azuredevops_group.collection_readers", "descriptor"),
-					resource.TestCheckResourceAttrSet("data.azuredevops_group.project_readers", "descriptor"),
+					resource.TestCheckResourceAttrSet("data.azuredevops_groups.project_groups", "groups.#"),
 					testAccCheckCollectionGroupNotInProjectGroups(
 						"data.azuredevops_groups.project_groups",
 						"azuredevops_group.collection_readers",
@@ -111,12 +111,6 @@ resource "azuredevops_group_membership" "make_collection_visible" {
   members = [
     azuredevops_group.collection_readers.descriptor
   ]
-}
-
-data "azuredevops_group" "project_readers" {
-  name       = "Readers"
-  project_id = azuredevops_project.test.id
-  depends_on = [azuredevops_group_membership.make_collection_visible]
 }
 
 data "azuredevops_groups" "project_groups" {

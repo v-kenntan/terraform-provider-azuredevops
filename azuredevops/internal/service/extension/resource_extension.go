@@ -45,7 +45,7 @@ func ResourceExtension() *schema.Resource {
 				Required:     true,
 				ForceNew:     true,
 				ValidateFunc: validation.StringIsNotWhiteSpace,
-				Description:  "The Azure DevOps Marketplace extension identifier, for example `vss-code-search`. This value is not a GUID. Azure DevOps extension installation only supports Marketplace identifiers.",
+				Description:  "The Azure DevOps Marketplace extension identifier, for example `vss-code-search`.",
 			},
 			"publisher_id": {
 				Type:             schema.TypeString,

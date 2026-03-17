@@ -23,7 +23,7 @@ resource "azuredevops_extension" "example" {
 
 The following arguments are supported:
 
-* `extension_id` - (Required) The Azure DevOps Marketplace extension identifier, for example `vss-code-search`. This value is not a GUID.
+* `extension_id` - (Required) The Azure DevOps Marketplace extension identifier, for example `vss-code-search`.
 
 * `publisher_id` - (Required) The Azure DevOps Marketplace publisher identifier, for example `ms`. This value is not a GUID.
 

@@ -140,7 +140,7 @@ func deleteServiceEndpoint(clients *client.AggregatedClient, serviceEndpoint *se
 				log.Printf("[DEBUG] Deleting service endpoint %s failed on attempt %d of %d, retrying. %v", serviceEndpoint.Id, attempts, maxAttempts, err)
 				return nil, "Retrying", nil
 			}
-			return serviceEndpoint, "Deleted", nil
+			return struct{}{}, "Deleted", nil
 		},
 	}
 
